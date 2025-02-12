@@ -1,6 +1,6 @@
 # Sistema de Gestión de Gastos Personales
 
-Expense Tracker es una aplicación desarrollada con React Native y Expo que permite la administración eficiente de gastos mediante una interfaz intuitiva y accesible.
+Es una aplicación desarrollada con React Native y Expo que permite la administración eficiente de gastos mediante una interfaz intuitiva y accesible.
 
 ## Instalación de Herramientas
 
