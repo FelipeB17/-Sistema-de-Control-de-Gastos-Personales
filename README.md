@@ -51,11 +51,4 @@ npx expo start
 
 Esto habilitará Expo Developer Tools en el navegador, permitiéndote probar la aplicación en un emulador o dispositivo físico.
 
-## Contribuciones
-
-Las contribuciones al proyecto son bienvenidas. Si deseas colaborar, abre un issue o envía un pull request.
-
-## Licencia
-
-Este proyecto está bajo la licencia MIT. Para más detalles, consulta el archivo `LICENSE`.
 
