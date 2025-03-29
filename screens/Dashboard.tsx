@@ -2,9 +2,11 @@ import { View, Text, ScrollView, StyleSheet } from "react-native"
 import { LineChart } from "react-native-chart-kit"
 import { useTransactions } from "../context/TransactionContext"
 import { theme } from "../theme"
+import { useCurrency } from "../hooks/useCurrency"
 
 const Dashboard = () => {
   const { transactions } = useTransactions()
+  const { format } = useCurrency()
 
   const balance = transactions.reduce(
     (acc, curr) => (curr.type === "income" ? acc + curr.amount : acc - curr.amount),
@@ -15,49 +17,116 @@ const Dashboard = () => {
 
   const expenses = transactions.filter((t) => t.type === "expense").reduce((acc, curr) => acc + curr.amount, 0)
 
-  // Simplified expense trend data
-  const expenseTrend = [expenses, expenses, expenses, expenses, expenses, expenses]
+  // Get monthly expense data for the chart
+  const getMonthlyExpenses = () => {
+    const today = new Date()
+    const monthlyData = []
+
+    for (let i = 5; i >= 0; i--) {
+      const month = new Date(today.getFullYear(), today.getMonth() - i, 1)
+      const monthExpenses = transactions
+        .filter((t) => {
+          const transDate = new Date(t.date)
+          return (
+            t.type === "expense" &&
+            transDate.getMonth() === month.getMonth() &&
+            transDate.getFullYear() === month.getFullYear()
+          )
+        })
+        .reduce((sum, t) => sum + t.amount, 0)
+
+      monthlyData.push(monthExpenses)
+    }
+
+    return monthlyData
+  }
+
+  const expenseTrend = getMonthlyExpenses()
+
+  // Get month labels for the chart
+  const getMonthLabels = () => {
+    const today = new Date()
+    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+    const labels = []
+
+    for (let i = 5; i >= 0; i--) {
+      const month = new Date(today.getFullYear(), today.getMonth() - i, 1)
+      labels.push(months[month.getMonth()])
+    }
+
+    return labels
+  }
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.section}>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Balance</Text>
-          <Text style={[styles.balance, balance < 0 && styles.negativeBalance]}>${balance.toFixed(2)}</Text>
+          <Text style={[styles.balance, balance < 0 && styles.negativeBalance]}>{format(balance)}</Text>
         </View>
         <View style={styles.row}>
           <View style={[styles.card, styles.halfCard]}>
-            <Text style={styles.cardTitle}>Income</Text>
-            <Text style={styles.income}>${income.toFixed(2)}</Text>
+            <Text style={styles.cardTitle}>Ingresos</Text>
+            <Text style={styles.income}>{format(income)}</Text>
           </View>
           <View style={[styles.card, styles.halfCard]}>
-            <Text style={styles.cardTitle}>Expenses</Text>
-            <Text style={styles.expense}>${expenses.toFixed(2)}</Text>
+            <Text style={styles.cardTitle}>Gastos</Text>
+            <Text style={styles.expense}>{format(expenses)}</Text>
           </View>
         </View>
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Expense Trend</Text>
-          <LineChart
-            data={{
-              labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-              datasets: [{ data: expenseTrend }],
-            }}
-            width={300}
-            height={200}
-            chartConfig={{
-              backgroundColor: theme.colors.card,
-              backgroundGradientFrom: theme.colors.card,
-              backgroundGradientTo: theme.colors.card,
-              decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(30, 58, 138, ${opacity})`,
-              labelColor: (opacity = 1) => `rgba(51, 51, 51, ${opacity})`,
-              style: {
-                borderRadius: 16,
-              },
-            }}
-            bezier
-            style={styles.chart}
-          />
+          <Text style={styles.cardTitle}>Tendencia de Gastos</Text>
+          {expenseTrend.some((amount) => amount > 0) ? (
+            <LineChart
+              data={{
+                labels: getMonthLabels(),
+                datasets: [{ data: expenseTrend.length ? expenseTrend : [0, 0, 0, 0, 0, 0] }],
+              }}
+              width={300}
+              height={200}
+              chartConfig={{
+                backgroundColor: theme.colors.card,
+                backgroundGradientFrom: theme.colors.card,
+                backgroundGradientTo: theme.colors.card,
+                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(30, 58, 138, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(51, 51, 51, ${opacity})`,
+                style: {
+                  borderRadius: 16,
+                },
+              }}
+              bezier
+              style={styles.chart}
+            />
+          ) : (
+            <View style={styles.noDataContainer}>
+              <Text style={styles.noDataText}>No hay datos de gastos para mostrar</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Últimas Transacciones</Text>
+          {transactions.length > 0 ? (
+            transactions
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+              .slice(0, 5)
+              .map((transaction) => (
+                <View key={transaction.id} style={styles.transactionItem}>
+                  <View>
+                    <Text style={styles.transactionCategory}>{transaction.category}</Text>
+                    <Text style={styles.transactionDate}>{new Date(transaction.date).toLocaleDateString()}</Text>
+                  </View>
+                  <Text
+                    style={[styles.transactionAmount, transaction.type === "income" ? styles.income : styles.expense]}
+                  >
+                    {transaction.type === "income" ? "+" : "-"} {format(transaction.amount)}
+                  </Text>
+                </View>
+              ))
+          ) : (
+            <Text style={styles.noDataText}>No hay transacciones registradas</Text>
+          )}
         </View>
       </View>
     </ScrollView>
@@ -119,6 +188,40 @@ const styles = StyleSheet.create({
   chart: {
     marginVertical: 8,
     borderRadius: 16,
+    alignSelf: "center",
+  },
+  transactionItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  transactionCategory: {
+    fontSize: theme.fontSizes.medium,
+    color: theme.colors.text,
+    fontWeight: "500",
+  },
+  transactionDate: {
+    fontSize: theme.fontSizes.small,
+    color: theme.colors.textSecondary,
+    marginTop: 4,
+  },
+  transactionAmount: {
+    fontSize: theme.fontSizes.medium,
+    fontWeight: "bold",
+  },
+  noDataContainer: {
+    height: 200,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noDataText: {
+    color: theme.colors.textSecondary,
+    fontSize: theme.fontSizes.medium,
+    textAlign: "center",
+    marginVertical: 20,
   },
 })
 
