@@ -1,34 +1,84 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from "react-native"
 import { useTransactions } from "../context/TransactionContext"
 import { theme } from "../theme"
 import { useCurrency } from "../hooks/useCurrency"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { Platform } from "react-native"
+import { Calendar, DollarSign, Tag, FileText, ArrowUpRight, ArrowDownRight } from "lucide-react-native"
+import { useNavigation } from "@react-navigation/native"
+import { SafeAreaView } from "react-native-safe-area-context"
 
-const categories = [
-  "Alimentación",
-  "Transporte",
-  "Vivienda",
-  "Entretenimiento",
-  "Salud",
-  "Educación",
-  "Ropa",
-  "Servicios",
-  "Otros",
+// Mejorar la diferenciación entre gastos e ingresos
+// Primero, modificar los tipos de transacción para incluir más información
+// Agregar constantes para los tipos de transacción
+const transactionTypes = [
+  {
+    id: "expense",
+    label: "Gasto",
+    icon: ArrowDownRight,
+    color: theme.colors.danger,
+    lightColor: theme.colors.dangerLight,
+    description: "Registra un gasto o salida de dinero",
+    placeholders: {
+      description: "Ej: Compra en supermercado, Pago de servicios, etc.",
+      categories: [
+        "Alimentación",
+        "Transporte",
+        "Vivienda",
+        "Entretenimiento",
+        "Salud",
+        "Educación",
+        "Ropa",
+        "Servicios",
+        "Otros",
+      ],
+    },
+  },
+  {
+    id: "income",
+    label: "Ingreso",
+    icon: ArrowUpRight,
+    color: theme.colors.success,
+    lightColor: theme.colors.successLight,
+    description: "Registra un ingreso o entrada de dinero",
+    placeholders: {
+      description: "Ej: Salario, Venta, Préstamo, Regalo, etc.",
+      categories: ["Salario", "Ventas", "Inversiones", "Regalos", "Reembolsos", "Préstamos", "Otros"],
+    },
+  },
 ]
 
-const AddExpense = ({ navigation }: any) => {
+const AddExpense = () => {
+  // Modificar el estado para usar el tipo seleccionado
+  const [type, setType] = useState<"expense" | "income">("expense")
+  const [categories, setCategories] = useState(transactionTypes[0].placeholders.categories)
   const [amount, setAmount] = useState("")
   const [category, setCategory] = useState("")
   const [description, setDescription] = useState("")
-  const [type, setType] = useState<"income" | "expense">("expense")
   const [date, setDate] = useState(new Date())
   const [showDatePicker, setShowDatePicker] = useState(false)
   const { addTransaction } = useTransactions()
   const { currency, format } = useCurrency()
+  const navigation = useNavigation()
+
+  // Actualizar la función que cambia el tipo para que también actualice las categorías
+  const handleTypeChange = useCallback(
+    (newType: "expense" | "income") => {
+      setType(newType)
+      const selectedTypeInfo = transactionTypes.find((t) => t.id === newType)
+      if (selectedTypeInfo) {
+        setCategories(selectedTypeInfo.placeholders.categories)
+        // Si la categoría actual no está en las nuevas categorías, resetearla
+        if (!selectedTypeInfo.placeholders.categories.includes(category)) {
+          setCategory("")
+        }
+      }
+    },
+    [category],
+  )
 
   const handleSubmit = () => {
     if (!amount || !category) {
@@ -57,7 +107,7 @@ const AddExpense = ({ navigation }: any) => {
           setType("expense")
 
           // Navigate back to dashboard
-          navigation.navigate("Dashboard")
+         // navigation.navigate("Dashboard")
         },
       },
     ])
@@ -70,118 +120,239 @@ const AddExpense = ({ navigation }: any) => {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.label}>Monto ({currency})</Text>
-        <TextInput
-          style={styles.input}
-          value={amount}
-          onChangeText={setAmount}
-          keyboardType="numeric"
-          placeholder="0.00"
-          placeholderTextColor={theme.colors.textSecondary}
-        />
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <ScrollView style={styles.container}>
+        {/* Eliminar el título duplicado en AddExpense
+        // Reemplazar la sección del header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Nueva Transacción</Text>
+        </View>
 
-        <Text style={styles.label}>Categoría</Text>
-        <View style={styles.categoriesContainer}>
-          {categories.map((cat) => (
+        <View style={styles.formContainer}>
+          <View style={styles.card}>
+            {/* Actualizar el renderizado de los botones de tipo */}
+            <View style={styles.typeSelector}>
+              {transactionTypes.map((typeInfo) => (
+                <TouchableOpacity
+                  key={typeInfo.id}
+                  style={[
+                    styles.typeButton,
+                    type === typeInfo.id
+                      ? { backgroundColor: typeInfo.color }
+                      : { backgroundColor: "white", borderWidth: 1, borderColor: theme.colors.border },
+                  ]}
+                  onPress={() => handleTypeChange(typeInfo.id as "expense" | "income")}
+                >
+                  <typeInfo.icon color={type === typeInfo.id ? "white" : typeInfo.color} size={20} />
+                  <Text
+                    style={[
+                      styles.typeButtonText,
+                      type === typeInfo.id ? { color: "white" } : { color: typeInfo.color },
+                    ]}
+                  >
+                    {typeInfo.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <View style={styles.labelContainer}>
+                <DollarSign color={theme.colors.primary} size={18} />
+                <Text style={styles.label}>Monto ({currency})</Text>
+              </View>
+              <TextInput
+                style={styles.input}
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="numeric"
+                placeholder="0.00"
+                placeholderTextColor={theme.colors.textSecondary}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <View style={styles.labelContainer}>
+                <Tag color={theme.colors.primary} size={18} />
+                <Text style={styles.label}>Categoría</Text>
+              </View>
+              <View style={styles.categoriesContainer}>
+                {categories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[styles.categoryChip, category === cat && styles.selectedCategoryChip]}
+                    onPress={() => setCategory(cat)}
+                  >
+                    <Text style={[styles.categoryChipText, category === cat && styles.selectedCategoryChipText]}>
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <View style={styles.labelContainer}>
+                <FileText color={theme.colors.primary} size={18} />
+                <Text style={styles.label}>Descripción (opcional)</Text>
+              </View>
+              {/* Actualizar el placeholder de la descripción */}
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={description}
+                onChangeText={setDescription}
+                placeholder={transactionTypes.find((t) => t.id === type)?.placeholders.description || ""}
+                placeholderTextColor={theme.colors.textSecondary}
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <View style={styles.labelContainer}>
+                <Calendar color={theme.colors.primary} size={18} />
+                <Text style={styles.label}>Fecha</Text>
+              </View>
+              <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
+                <Text style={styles.dateButtonText}>{date.toLocaleDateString()}</Text>
+              </TouchableOpacity>
+
+              {showDatePicker && (
+                <View style={styles.datePickerContainer}>
+                  <DateTimePicker value={date} mode="date" display="default" onChange={onDateChange} />
+                </View>
+              )}
+            </View>
+
             <TouchableOpacity
-              key={cat}
-              style={[styles.categoryChip, category === cat && styles.selectedCategoryChip]}
-              onPress={() => setCategory(cat)}
+              style={[styles.submitButton, type === "income" ? styles.incomeSubmitButton : styles.expenseSubmitButton]}
+              onPress={handleSubmit}
             >
-              <Text style={[styles.categoryChipText, category === cat && styles.selectedCategoryChipText]}>{cat}</Text>
+              <Text style={styles.submitButtonText}>{type === "income" ? "Agregar Ingreso" : "Agregar Gasto"}</Text>
             </TouchableOpacity>
-          ))}
+          </View>
         </View>
-
-        <Text style={styles.label}>Descripción (opcional)</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          value={description}
-          onChangeText={setDescription}
-          placeholder="Añade detalles sobre esta transacción"
-          placeholderTextColor={theme.colors.textSecondary}
-          multiline
-          numberOfLines={3}
-        />
-
-        <Text style={styles.label}>Fecha</Text>
-        <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-          <Text style={styles.dateButtonText}>{date.toLocaleDateString()}</Text>
-        </TouchableOpacity>
-
-        {showDatePicker && <DateTimePicker value={date} mode="date" display="default" onChange={onDateChange} />}
-
-        <Text style={styles.label}>Tipo</Text>
-        <View style={styles.typeContainer}>
-          <TouchableOpacity
-            style={[styles.typeButton, type === "expense" && styles.activeTypeButton]}
-            onPress={() => setType("expense")}
-          >
-            <Text style={[styles.typeButtonText, type === "expense" && styles.activeTypeButtonText]}>Gasto</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.typeButton, type === "income" && styles.activeTypeButton]}
-            onPress={() => setType("income")}
-          >
-            <Text style={[styles.typeButtonText, type === "income" && styles.activeTypeButtonText]}>Ingreso</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-          <Text style={styles.buttonText}>Agregar Transacción</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: theme.colors.primary,
+  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  header: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    alignItems: "center",
+  },
+  headerTitle: {
+    color: "white",
+    fontSize: theme.fontSizes.large,
+    fontWeight: "bold",
+  },
+  formContainer: {
     padding: 16,
+    marginTop: -20,
   },
   card: {
     backgroundColor: theme.colors.card,
-    borderRadius: 8,
-    padding: 16,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  typeSelector: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  typeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "48%",
+    paddingVertical: 12,
+    borderRadius: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
+  activeExpenseButton: {
+    backgroundColor: theme.colors.danger,
+  },
+  activeIncomeButton: {
+    backgroundColor: theme.colors.success,
+  },
+  inactiveButton: {
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  typeButtonText: {
+    fontSize: theme.fontSizes.medium,
+    fontWeight: "bold",
+    marginLeft: 8,
+  },
+  activeButtonText: {
+    color: "white",
+  },
+  inactiveExpenseText: {
+    color: theme.colors.danger,
+  },
+  inactiveIncomeText: {
+    color: theme.colors.success,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  labelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
   label: {
     fontSize: theme.fontSizes.medium,
     color: theme.colors.text,
-    marginBottom: 8,
     fontWeight: "500",
+    marginLeft: 8,
   },
   input: {
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: 4,
+    borderRadius: 12,
     padding: 12,
-    marginBottom: 16,
     fontSize: theme.fontSizes.medium,
     color: theme.colors.text,
+    backgroundColor: theme.colors.cardAlt,
   },
   textArea: {
-    height: 80,
+    height: 100,
     textAlignVertical: "top",
   },
   categoriesContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginBottom: 16,
   },
   categoryChip: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.cardAlt,
     borderRadius: 20,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     margin: 4,
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -193,53 +364,47 @@ const styles = StyleSheet.create({
   categoryChipText: {
     color: theme.colors.text,
     fontSize: theme.fontSizes.small,
+    fontWeight: "500",
   },
   selectedCategoryChipText: {
     color: "white",
   },
   dateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: 4,
+    borderRadius: 12,
     padding: 12,
-    marginBottom: 16,
+    backgroundColor: theme.colors.cardAlt,
   },
   dateButtonText: {
     fontSize: theme.fontSizes.medium,
     color: theme.colors.text,
+    textAlign: "center",
   },
-  typeContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  typeButton: {
-    flex: 1,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-    borderRadius: 4,
+  datePickerContainer: {
+    marginTop: 10,
     alignItems: "center",
-    marginHorizontal: 4,
+    backgroundColor: theme.colors.cardAlt,
+    borderRadius: 12,
+    padding: 10,
   },
-  activeTypeButton: {
-    backgroundColor: theme.colors.primary,
-  },
-  typeButtonText: {
-    color: theme.colors.primary,
-    fontWeight: "bold",
-  },
-  activeTypeButtonText: {
-    color: theme.colors.card,
-  },
-  button: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 4,
+  submitButton: {
+    borderRadius: 12,
     padding: 16,
     alignItems: "center",
+    marginTop: 10,
   },
-  buttonText: {
-    color: theme.colors.card,
+  expenseSubmitButton: {
+    backgroundColor: theme.colors.danger,
+  },
+  incomeSubmitButton: {
+    backgroundColor: theme.colors.success,
+  },
+  submitButtonText: {
+    color: "white",
     fontSize: theme.fontSizes.medium,
     fontWeight: "bold",
   },
