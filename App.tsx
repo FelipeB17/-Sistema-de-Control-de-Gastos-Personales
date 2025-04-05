@@ -16,7 +16,7 @@ const Tab = createBottomTabNavigator()
 export default function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
       <TransactionProvider>
         <NavigationContainer>
           <Tab.Navigator
@@ -41,20 +41,32 @@ export default function App() {
                 borderTopColor: theme.colors.border,
                 paddingBottom: 5,
                 height: 60,
+                elevation: 10,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: -2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
               },
               headerStyle: {
                 backgroundColor: theme.colors.primary,
+                elevation: 0,
+                shadowOpacity: 0,
               },
               headerTintColor: theme.colors.card,
               headerTitleStyle: {
                 fontWeight: "bold",
               },
+              tabBarLabelStyle: {
+                fontSize: 12,
+                fontWeight: "500",
+                marginBottom: 4,
+              },
             })}
           >
-            <Tab.Screen name="Dashboard" component={Dashboard} options={{ title: "Inicio" }} />
-            <Tab.Screen name="Agregar" component={AddExpense} options={{ title: "Agregar Transacción" }} />
-            <Tab.Screen name="Reportes" component={Reports} options={{ title: "Reportes" }} />
-            <Tab.Screen name="Ajustes" component={SettingsScreen} options={{ title: "Ajustes" }} />
+            <Tab.Screen name="Dashboard" component={Dashboard} options={{ title: "Inicio", headerShown: false }} />
+            <Tab.Screen name="Agregar" component={AddExpense} options={{ title: "Agregar", headerShown: false }} />
+            <Tab.Screen name="Reportes" component={Reports} options={{ title: "Reportes", headerShown: false }} />
+            <Tab.Screen name="Ajustes" component={SettingsScreen} options={{ title: "Ajustes", headerShown: false }} />
           </Tab.Navigator>
         </NavigationContainer>
       </TransactionProvider>

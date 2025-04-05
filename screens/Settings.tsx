@@ -8,6 +8,8 @@ import { theme } from "../theme"
 import { useCurrency } from "../hooks/useCurrency"
 import * as FileSystem from "expo-file-system"
 import * as Sharing from "expo-sharing"
+import { DollarSign, Bell, Moon, FileDown, Trash2, Info, ChevronRight, Code } from "lucide-react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 
 const SettingsScreen = () => {
   const { transactions, clearTransactions } = useTransactions()
@@ -99,115 +101,208 @@ const SettingsScreen = () => {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Preferencias</Text>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <ScrollView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Configuración</Text>
+        </View>
+        
+        <View style={styles.content}>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Preferencias</Text>
 
-        <TouchableOpacity style={styles.settingsItem} onPress={toggleCurrency}>
-          <Text style={styles.settingsText}>Moneda</Text>
-          <View style={styles.currencySelector}>
-            <Text style={[styles.currencyOption, currency === "USD" && styles.activeCurrency]}>USD</Text>
-            <Text style={styles.currencySeparator}>|</Text>
-            <Text style={[styles.currencyOption, currency === "COP" && styles.activeCurrency]}>COP</Text>
+            <View style={styles.card}>
+              <TouchableOpacity style={styles.settingsItem} onPress={toggleCurrency}>
+                <View style={styles.settingIconContainer}>
+                  <DollarSign color={theme.colors.primary} size={20} />
+                </View>
+                <View style={styles.settingTextContainer}>
+                  <Text style={styles.settingLabel}>Moneda</Text>
+                  <Text style={styles.settingDescription}>Cambia la moneda de la aplicación</Text>
+                </View>
+                <View style={styles.currencySelector}>
+                  <Text style={[styles.currencyOption, currency === "USD" && styles.activeCurrency]}>USD</Text>
+                  <Text style={styles.currencySeparator}>|</Text>
+                  <Text style={[styles.currencyOption, currency === "COP" && styles.activeCurrency]}>COP</Text>
+                </View>
+              </TouchableOpacity>
+
+              <View style={styles.settingsItem}>
+                <View style={styles.settingIconContainer}>
+                  <Bell color={theme.colors.primary} size={20} />
+                </View>
+                <View style={styles.settingTextContainer}>
+                  <Text style={styles.settingLabel}>Notificaciones</Text>
+                  <Text style={styles.settingDescription}>Recibe alertas sobre tus gastos</Text>
+                </View>
+                <Switch
+                  value={notifications}
+                  onValueChange={toggleNotifications}
+                  trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                  thumbColor={notifications ? "#fff" : "#f4f3f4"}
+                />
+              </View>
+
+              <View style={styles.settingsItem}>
+                <View style={styles.settingIconContainer}>
+                  <Moon color={theme.colors.primary} size={20} />
+                </View>
+                <View style={styles.settingTextContainer}>
+                  <Text style={styles.settingLabel}>Modo Oscuro</Text>
+                  <Text style={styles.settingDescription}>Cambia el tema de la aplicación</Text>
+                </View>
+                <Switch
+                  value={darkMode}
+                  onValueChange={toggleDarkMode}
+                  trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                  thumbColor={darkMode ? "#fff" : "#f4f3f4"}
+                />
+              </View>
+            </View>
           </View>
-        </TouchableOpacity>
 
-        <View style={styles.settingsItem}>
-          <Text style={styles.settingsText}>Notificaciones</Text>
-          <Switch
-            value={notifications}
-            onValueChange={toggleNotifications}
-            trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-          />
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Datos</Text>
+
+            <View style={styles.card}>
+              <TouchableOpacity style={styles.settingsItem} onPress={exportData}>
+                <View style={styles.settingIconContainer}>
+                  <FileDown color={theme.colors.primary} size={20} />
+                </View>
+                <View style={styles.settingTextContainer}>
+                  <Text style={styles.settingLabel}>Exportar Datos</Text>
+                  <Text style={styles.settingDescription}>Guarda tus datos en un archivo</Text>
+                </View>
+                <ChevronRight color={theme.colors.textSecondary} size={20} />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.settingsItem} onPress={clearAllData}>
+                <View style={[styles.settingIconContainer, { backgroundColor: theme.colors.dangerLight }]}>
+                  <Trash2 color={theme.colors.danger} size={20} />
+                </View>
+                <View style={styles.settingTextContainer}>
+                  <Text style={styles.dangerText}>Borrar Todos los Datos</Text>
+                  <Text style={styles.settingDescription}>Elimina todas tus transacciones</Text>
+                </View>
+                <ChevronRight color={theme.colors.textSecondary} size={20} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Acerca de</Text>
+
+            <View style={styles.card}>
+              <View style={styles.settingsItem}>
+                <View style={styles.settingIconContainer}>
+                  <Code color={theme.colors.primary} size={20} />
+                </View>
+                <View style={styles.settingTextContainer}>
+                  <Text style={styles.settingLabel}>Desarrolladores</Text>
+                  <Text style={styles.settingDescription}>
+                    Felipe Beltran Assaf{"\n"}
+                    Sebastian Martinez Pabon
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.settingsItem}>
+                <View style={styles.settingIconContainer}>
+                  <Info color={theme.colors.primary} size={20} />
+                </View>
+                <View style={styles.settingTextContainer}>
+                  <Text style={styles.settingLabel}>Versión</Text>
+                  <Text style={styles.settingDescription}>1.0.0</Text>
+                </View>
+              </View>
+            </View>
+          </View>
         </View>
-
-        <View style={styles.settingsItem}>
-          <Text style={styles.settingsText}>Modo Oscuro</Text>
-          <Switch
-            value={darkMode}
-            onValueChange={toggleDarkMode}
-            trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-          />
-        </View>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Datos</Text>
-
-        <TouchableOpacity style={styles.settingsItem} onPress={exportData}>
-          <Text style={styles.settingsText}>Exportar Datos</Text>
-          <Text style={styles.actionText}>Exportar</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.settingsItem} onPress={clearAllData}>
-          <Text style={styles.dangerText}>Borrar Todos los Datos</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Acerca de</Text>
-
-        <View style={styles.settingsItem}>
-          <Text style={styles.settingsText}>Versión</Text>
-          <Text style={styles.versionText}>1.0.0</Text>
-        </View>
-
-        <View style={[styles.settingsItem, styles.noBorder]}>
-  <Text style={styles.settingsText}>Desarrollado por</Text>
-  <Text style={styles.developerText}>
-    Felipe Beltran Assaf{"\n"}
-    Sebastian Martinez Pabon
-  </Text>
-</View>
-
-
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: theme.colors.primary,
+  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  header: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 20,
+    paddingTop: 30,
+    paddingBottom: 50,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    alignItems: "center",
+  },
+  headerTitle: {
+    color: "white",
+    fontSize: theme.fontSizes.large,
+    fontWeight: "bold",
+  },
+  spacer: {
+    height: 30,
+    backgroundColor: "transparent",
+  },
+  content: {
     padding: 16,
+    marginTop: 0,
+  },
+  section: {
+    marginBottom: 24,
+    marginTop: 8,
+  },
+  sectionTitle: {
+    fontSize: theme.fontSizes.medium,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    marginBottom: 12,
+    marginLeft: 8,
   },
   card: {
     backgroundColor: theme.colors.card,
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  sectionTitle: {
-    fontSize: theme.fontSizes.large,
-    fontWeight: "bold",
-    color: theme.colors.text,
-    marginBottom: 16,
+    shadowRadius: 8,
+    elevation: 5,
+    overflow: "hidden",
   },
   settingsItem: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 16,
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  noBorder: {
-    borderBottomWidth: 0,
+  settingIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.primaryLight,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
   },
-  settingsText: {
+  settingTextContainer: {
+    flex: 1,
+  },
+  settingLabel: {
     fontSize: theme.fontSizes.medium,
     color: theme.colors.text,
-  },
-  actionText: {
-    fontSize: theme.fontSizes.medium,
-    color: theme.colors.primary,
     fontWeight: "500",
+  },
+  settingDescription: {
+    fontSize: theme.fontSizes.small,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
   },
   dangerText: {
     fontSize: theme.fontSizes.medium,
@@ -217,26 +312,26 @@ const styles = StyleSheet.create({
   currencySelector: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   currencyOption: {
-    fontSize: theme.fontSizes.medium,
+    fontSize: theme.fontSizes.small,
     color: theme.colors.textSecondary,
     paddingHorizontal: 8,
+    paddingVertical: 2,
   },
   activeCurrency: {
     color: theme.colors.primary,
     fontWeight: "bold",
+    backgroundColor: "white",
+    borderRadius: 12,
+    overflow: "hidden",
   },
   currencySeparator: {
     color: theme.colors.border,
-  },
-  versionText: {
-    fontSize: theme.fontSizes.medium,
-    color: theme.colors.textSecondary,
-  },
-  developerText: {
-    fontSize: theme.fontSizes.medium,
-    color: theme.colors.primary,
   },
 })
 
