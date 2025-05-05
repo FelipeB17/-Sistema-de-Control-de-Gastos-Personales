@@ -1,60 +1,21 @@
 "use client"
-
-import { useState, useEffect } from "react"
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Switch, ScrollView } from "react-native"
-import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useTransactions } from "../context/TransactionContext"
-import { theme } from "../theme"
+import { useTheme } from "../context/ThemeContext"
 import { useCurrency } from "../hooks/useCurrency"
 import * as FileSystem from "expo-file-system"
 import * as Sharing from "expo-sharing"
-import { DollarSign, Bell, Moon, FileDown, Trash2, Info, ChevronRight, Code } from "lucide-react-native"
+import { DollarSign, Moon, FileDown, Trash2, Info, ChevronRight, Code } from "lucide-react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 const SettingsScreen = () => {
   const { transactions, clearTransactions } = useTransactions()
-  const { currency, changeCurrency } = useCurrency()
-  const [notifications, setNotifications] = useState(true)
-  const [darkMode, setDarkMode] = useState(false)
-
-  useEffect(() => {
-    loadSettings()
-  }, [])
-
-  const loadSettings = async () => {
-    try {
-      const savedNotifications = await AsyncStorage.getItem("@notifications")
-      if (savedNotifications) setNotifications(JSON.parse(savedNotifications))
-
-      const savedDarkMode = await AsyncStorage.getItem("@darkMode")
-      if (savedDarkMode) setDarkMode(JSON.parse(savedDarkMode))
-    } catch (e) {
-      console.error("Failed to load settings", e)
-    }
-  }
-
-  const saveSetting = async (key: string, value: string | boolean) => {
-    try {
-      await AsyncStorage.setItem(`@${key}`, typeof value === "string" ? value : JSON.stringify(value))
-    } catch (e) {
-      console.error(`Failed to save ${key}`, e)
-    }
-  }
+  const { currency, changeCurrency, convert } = useCurrency()
+  const { isDarkMode, toggleTheme, theme } = useTheme()
 
   const toggleCurrency = async () => {
     const newCurrency = currency === "USD" ? "COP" : "USD"
     await changeCurrency(newCurrency)
-  }
-
-  const toggleNotifications = async () => {
-    setNotifications(!notifications)
-    await saveSetting("notifications", !notifications)
-  }
-
-  const toggleDarkMode = async () => {
-    setDarkMode(!darkMode)
-    await saveSetting("darkMode", !darkMode)
-    // Here you would implement the actual theme change
   }
 
   const clearAllData = async () => {
@@ -101,77 +62,73 @@ const SettingsScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <ScrollView style={styles.container}>
-        <View style={styles.header}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.primary }]} edges={["top"]}>
+      <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
           <Text style={styles.headerTitle}>Configuración</Text>
         </View>
-        
+
         <View style={styles.content}>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Preferencias</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Preferencias</Text>
 
-            <View style={styles.card}>
-              <TouchableOpacity style={styles.settingsItem} onPress={toggleCurrency}>
-                <View style={styles.settingIconContainer}>
+            <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+              <TouchableOpacity
+                style={[styles.settingsItem, { borderBottomColor: theme.colors.border }]}
+                onPress={toggleCurrency}
+              >
+                <View style={[styles.settingIconContainer, { backgroundColor: theme.colors.primaryLight }]}>
                   <DollarSign color={theme.colors.primary} size={20} />
                 </View>
                 <View style={styles.settingTextContainer}>
-                  <Text style={styles.settingLabel}>Moneda</Text>
-                  <Text style={styles.settingDescription}>Cambia la moneda de la aplicación</Text>
+                  <Text style={[styles.settingLabel, { color: theme.colors.text }]}>Moneda</Text>
+                  <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
+                    {currency === "USD" ? "Dólares (USD)" : "Pesos Colombianos (COP)"}
+                  </Text>
                 </View>
-                <View style={styles.currencySelector}>
+                <View style={[styles.currencySelector, { backgroundColor: theme.colors.primaryLight }]}>
                   <Text style={[styles.currencyOption, currency === "USD" && styles.activeCurrency]}>USD</Text>
-                  <Text style={styles.currencySeparator}>|</Text>
+                  <Text style={[styles.currencySeparator, { color: theme.colors.border }]}>|</Text>
                   <Text style={[styles.currencyOption, currency === "COP" && styles.activeCurrency]}>COP</Text>
                 </View>
               </TouchableOpacity>
 
-              <View style={styles.settingsItem}>
-                <View style={styles.settingIconContainer}>
-                  <Bell color={theme.colors.primary} size={20} />
-                </View>
-                <View style={styles.settingTextContainer}>
-                  <Text style={styles.settingLabel}>Notificaciones</Text>
-                  <Text style={styles.settingDescription}>Recibe alertas sobre tus gastos</Text>
-                </View>
-                <Switch
-                  value={notifications}
-                  onValueChange={toggleNotifications}
-                  trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-                  thumbColor={notifications ? "#fff" : "#f4f3f4"}
-                />
-              </View>
-
-              <View style={styles.settingsItem}>
-                <View style={styles.settingIconContainer}>
+              <View style={[styles.settingsItem, { borderBottomColor: theme.colors.border }]}>
+                <View style={[styles.settingIconContainer, { backgroundColor: theme.colors.primaryLight }]}>
                   <Moon color={theme.colors.primary} size={20} />
                 </View>
                 <View style={styles.settingTextContainer}>
-                  <Text style={styles.settingLabel}>Modo Oscuro</Text>
-                  <Text style={styles.settingDescription}>Cambia el tema de la aplicación</Text>
+                  <Text style={[styles.settingLabel, { color: theme.colors.text }]}>Modo Oscuro</Text>
+                  <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
+                    {isDarkMode ? "Activado" : "Desactivado"}
+                  </Text>
                 </View>
                 <Switch
-                  value={darkMode}
-                  onValueChange={toggleDarkMode}
+                  value={isDarkMode}
+                  onValueChange={toggleTheme}
                   trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-                  thumbColor={darkMode ? "#fff" : "#f4f3f4"}
+                  thumbColor={isDarkMode ? "#fff" : "#f4f3f4"}
                 />
               </View>
             </View>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Datos</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Datos</Text>
 
-            <View style={styles.card}>
-              <TouchableOpacity style={styles.settingsItem} onPress={exportData}>
-                <View style={styles.settingIconContainer}>
+            <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+              <TouchableOpacity
+                style={[styles.settingsItem, { borderBottomColor: theme.colors.border }]}
+                onPress={exportData}
+              >
+                <View style={[styles.settingIconContainer, { backgroundColor: theme.colors.primaryLight }]}>
                   <FileDown color={theme.colors.primary} size={20} />
                 </View>
                 <View style={styles.settingTextContainer}>
-                  <Text style={styles.settingLabel}>Exportar Datos</Text>
-                  <Text style={styles.settingDescription}>Guarda tus datos en un archivo</Text>
+                  <Text style={[styles.settingLabel, { color: theme.colors.text }]}>Exportar Datos</Text>
+                  <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
+                    Guarda tus datos en un archivo
+                  </Text>
                 </View>
                 <ChevronRight color={theme.colors.textSecondary} size={20} />
               </TouchableOpacity>
@@ -181,8 +138,10 @@ const SettingsScreen = () => {
                   <Trash2 color={theme.colors.danger} size={20} />
                 </View>
                 <View style={styles.settingTextContainer}>
-                  <Text style={styles.dangerText}>Borrar Todos los Datos</Text>
-                  <Text style={styles.settingDescription}>Elimina todas tus transacciones</Text>
+                  <Text style={[styles.dangerText, { color: theme.colors.danger }]}>Borrar Todos los Datos</Text>
+                  <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
+                    Elimina todas tus transacciones
+                  </Text>
                 </View>
                 <ChevronRight color={theme.colors.textSecondary} size={20} />
               </TouchableOpacity>
@@ -190,16 +149,16 @@ const SettingsScreen = () => {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Acerca de</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Acerca de</Text>
 
-            <View style={styles.card}>
-              <View style={styles.settingsItem}>
-                <View style={styles.settingIconContainer}>
+            <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+              <View style={[styles.settingsItem, { borderBottomColor: theme.colors.border }]}>
+                <View style={[styles.settingIconContainer, { backgroundColor: theme.colors.primaryLight }]}>
                   <Code color={theme.colors.primary} size={20} />
                 </View>
                 <View style={styles.settingTextContainer}>
-                  <Text style={styles.settingLabel}>Desarrolladores</Text>
-                  <Text style={styles.settingDescription}>
+                  <Text style={[styles.settingLabel, { color: theme.colors.text }]}>Desarrolladores</Text>
+                  <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
                     Felipe Beltran Assaf{"\n"}
                     Sebastian Martinez Pabon
                   </Text>
@@ -207,12 +166,12 @@ const SettingsScreen = () => {
               </View>
 
               <View style={styles.settingsItem}>
-                <View style={styles.settingIconContainer}>
+                <View style={[styles.settingIconContainer, { backgroundColor: theme.colors.primaryLight }]}>
                   <Info color={theme.colors.primary} size={20} />
                 </View>
                 <View style={styles.settingTextContainer}>
-                  <Text style={styles.settingLabel}>Versión</Text>
-                  <Text style={styles.settingDescription}>1.0.0</Text>
+                  <Text style={[styles.settingLabel, { color: theme.colors.text }]}>Versión</Text>
+                  <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>1.0.0</Text>
                 </View>
               </View>
             </View>
@@ -226,47 +185,37 @@ const SettingsScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   header: {
-    backgroundColor: theme.colors.primary,
     paddingHorizontal: 20,
-    paddingTop: 30,
-    paddingBottom: 50,
+    paddingTop: 10,
+    paddingBottom: 30,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     alignItems: "center",
   },
   headerTitle: {
     color: "white",
-    fontSize: theme.fontSizes.large,
+    fontSize: 20,
     fontWeight: "bold",
-  },
-  spacer: {
-    height: 30,
-    backgroundColor: "transparent",
   },
   content: {
     padding: 16,
-    marginTop: 0,
+    marginTop: -20,
   },
   section: {
-    marginBottom: 24,
-    marginTop: 8,
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: theme.fontSizes.medium,
+    fontSize: 16,
     fontWeight: "bold",
-    color: theme.colors.text,
     marginBottom: 12,
     marginLeft: 8,
   },
   card: {
-    backgroundColor: theme.colors.card,
     borderRadius: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -280,13 +229,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
   },
   settingIconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.primaryLight,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -295,45 +242,40 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   settingLabel: {
-    fontSize: theme.fontSizes.medium,
-    color: theme.colors.text,
+    fontSize: 16,
     fontWeight: "500",
   },
   settingDescription: {
-    fontSize: theme.fontSizes.small,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
     marginTop: 2,
   },
   dangerText: {
-    fontSize: theme.fontSizes.medium,
-    color: theme.colors.danger,
+    fontSize: 16,
     fontWeight: "500",
   },
   currencySelector: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.primaryLight,
     borderRadius: 16,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
   currencyOption: {
-    fontSize: theme.fontSizes.small,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    color: "#718096",
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
   activeCurrency: {
-    color: theme.colors.primary,
+    color: "#4361EE",
     fontWeight: "bold",
     backgroundColor: "white",
     borderRadius: 12,
     overflow: "hidden",
   },
   currencySeparator: {
-    color: theme.colors.border,
+    color: "#E2E8F0",
   },
 })
 
 export default SettingsScreen
-

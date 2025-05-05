@@ -3,12 +3,11 @@
 import { useState, useCallback } from "react"
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from "react-native"
 import { useTransactions } from "../context/TransactionContext"
-import { theme } from "../theme"
+import { useTheme } from "../context/ThemeContext"
 import { useCurrency } from "../hooks/useCurrency"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { Platform } from "react-native"
 import { Calendar, DollarSign, Tag, FileText, ArrowUpRight, ArrowDownRight } from "lucide-react-native"
-import { useNavigation } from "@react-navigation/native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 // Mejorar la diferenciación entre gastos e ingresos
@@ -19,8 +18,8 @@ const transactionTypes = [
     id: "expense",
     label: "Gasto",
     icon: ArrowDownRight,
-    color: theme.colors.danger,
-    lightColor: theme.colors.dangerLight,
+    color: "#EF476F", // theme.colors.danger
+    lightColor: "#FFF0F3", // theme.colors.dangerLight
     description: "Registra un gasto o salida de dinero",
     placeholders: {
       description: "Ej: Compra en supermercado, Pago de servicios, etc.",
@@ -41,8 +40,8 @@ const transactionTypes = [
     id: "income",
     label: "Ingreso",
     icon: ArrowUpRight,
-    color: theme.colors.success,
-    lightColor: theme.colors.successLight,
+    color: "#06D6A0", // theme.colors.success
+    lightColor: "#E6FFF8", // theme.colors.successLight
     description: "Registra un ingreso o entrada de dinero",
     placeholders: {
       description: "Ej: Salario, Venta, Préstamo, Regalo, etc.",
@@ -62,7 +61,7 @@ const AddExpense = () => {
   const [showDatePicker, setShowDatePicker] = useState(false)
   const { addTransaction } = useTransactions()
   const { currency, format } = useCurrency()
-  const navigation = useNavigation()
+  const { theme } = useTheme()
 
   // Actualizar la función que cambia el tipo para que también actualice las categorías
   const handleTypeChange = useCallback(
@@ -106,8 +105,8 @@ const AddExpense = () => {
           setDate(new Date())
           setType("expense")
 
-          // Navigate back to dashboard
-         // navigation.navigate("Dashboard")
+          // Eliminamos la navegación que causa el error
+          // En lugar de navegar, simplemente reseteamos el formulario
         },
       },
     ])
@@ -120,16 +119,16 @@ const AddExpense = () => {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <ScrollView style={styles.container}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.primary }]} edges={["top"]}>
+      <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         {/* Eliminar el título duplicado en AddExpense
         // Reemplazar la sección del header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
           <Text style={styles.headerTitle}>Nueva Transacción</Text>
         </View>
 
         <View style={styles.formContainer}>
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
             {/* Actualizar el renderizado de los botones de tipo */}
             <View style={styles.typeSelector}>
               {transactionTypes.map((typeInfo) => (
@@ -139,7 +138,7 @@ const AddExpense = () => {
                     styles.typeButton,
                     type === typeInfo.id
                       ? { backgroundColor: typeInfo.color }
-                      : { backgroundColor: "white", borderWidth: 1, borderColor: theme.colors.border },
+                      : { backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border },
                   ]}
                   onPress={() => handleTypeChange(typeInfo.id as "expense" | "income")}
                 >
@@ -159,10 +158,17 @@ const AddExpense = () => {
             <View style={styles.inputGroup}>
               <View style={styles.labelContainer}>
                 <DollarSign color={theme.colors.primary} size={18} />
-                <Text style={styles.label}>Monto ({currency})</Text>
+                <Text style={[styles.label, { color: theme.colors.text }]}>Monto ({currency})</Text>
               </View>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme.colors.cardAlt,
+                    borderColor: theme.colors.border,
+                    color: theme.colors.text,
+                  },
+                ]}
                 value={amount}
                 onChangeText={setAmount}
                 keyboardType="numeric"
@@ -174,16 +180,29 @@ const AddExpense = () => {
             <View style={styles.inputGroup}>
               <View style={styles.labelContainer}>
                 <Tag color={theme.colors.primary} size={18} />
-                <Text style={styles.label}>Categoría</Text>
+                <Text style={[styles.label, { color: theme.colors.text }]}>Categoría</Text>
               </View>
               <View style={styles.categoriesContainer}>
                 {categories.map((cat) => (
                   <TouchableOpacity
                     key={cat}
-                    style={[styles.categoryChip, category === cat && styles.selectedCategoryChip]}
+                    style={[
+                      styles.categoryChip,
+                      {
+                        backgroundColor: theme.colors.cardAlt,
+                        borderColor: theme.colors.border,
+                      },
+                      category === cat && [styles.selectedCategoryChip, { backgroundColor: theme.colors.primary }],
+                    ]}
                     onPress={() => setCategory(cat)}
                   >
-                    <Text style={[styles.categoryChipText, category === cat && styles.selectedCategoryChipText]}>
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        { color: theme.colors.text },
+                        category === cat && styles.selectedCategoryChipText,
+                      ]}
+                    >
                       {cat}
                     </Text>
                   </TouchableOpacity>
@@ -194,11 +213,19 @@ const AddExpense = () => {
             <View style={styles.inputGroup}>
               <View style={styles.labelContainer}>
                 <FileText color={theme.colors.primary} size={18} />
-                <Text style={styles.label}>Descripción (opcional)</Text>
+                <Text style={[styles.label, { color: theme.colors.text }]}>Descripción (opcional)</Text>
               </View>
               {/* Actualizar el placeholder de la descripción */}
               <TextInput
-                style={[styles.input, styles.textArea]}
+                style={[
+                  styles.input,
+                  styles.textArea,
+                  {
+                    backgroundColor: theme.colors.cardAlt,
+                    borderColor: theme.colors.border,
+                    color: theme.colors.text,
+                  },
+                ]}
                 value={description}
                 onChangeText={setDescription}
                 placeholder={transactionTypes.find((t) => t.id === type)?.placeholders.description || ""}
@@ -211,15 +238,30 @@ const AddExpense = () => {
             <View style={styles.inputGroup}>
               <View style={styles.labelContainer}>
                 <Calendar color={theme.colors.primary} size={18} />
-                <Text style={styles.label}>Fecha</Text>
+                <Text style={[styles.label, { color: theme.colors.text }]}>Fecha</Text>
               </View>
-              <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-                <Text style={styles.dateButtonText}>{date.toLocaleDateString()}</Text>
+              <TouchableOpacity
+                style={[
+                  styles.dateButton,
+                  {
+                    backgroundColor: theme.colors.cardAlt,
+                    borderColor: theme.colors.border,
+                  },
+                ]}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={[styles.dateButtonText, { color: theme.colors.text }]}>{date.toLocaleDateString()}</Text>
               </TouchableOpacity>
 
               {showDatePicker && (
-                <View style={styles.datePickerContainer}>
-                  <DateTimePicker value={date} mode="date" display="default" onChange={onDateChange} />
+                <View style={[styles.datePickerContainer, { backgroundColor: theme.colors.cardAlt }]}>
+                  <DateTimePicker
+                    value={date}
+                    mode="date"
+                    display="default"
+                    onChange={onDateChange}
+                    textColor={theme.colors.text}
+                  />
                 </View>
               )}
             </View>
@@ -240,14 +282,11 @@ const AddExpense = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   header: {
-    backgroundColor: theme.colors.primary,
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 30,
@@ -257,7 +296,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: "white",
-    fontSize: theme.fontSizes.large,
+    fontSize: 20,
     fontWeight: "bold",
   },
   formContainer: {
@@ -265,7 +304,6 @@ const styles = StyleSheet.create({
     marginTop: -20,
   },
   card: {
-    backgroundColor: theme.colors.card,
     borderRadius: 16,
     padding: 20,
     shadowColor: "#000",
@@ -293,18 +331,18 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   activeExpenseButton: {
-    backgroundColor: theme.colors.danger,
+    backgroundColor: "#EF476F",
   },
   activeIncomeButton: {
-    backgroundColor: theme.colors.success,
+    backgroundColor: "#06D6A0",
   },
   inactiveButton: {
     backgroundColor: "white",
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: "#E2E8F0",
   },
   typeButtonText: {
-    fontSize: theme.fontSizes.medium,
+    fontSize: 16,
     fontWeight: "bold",
     marginLeft: 8,
   },
@@ -312,10 +350,10 @@ const styles = StyleSheet.create({
     color: "white",
   },
   inactiveExpenseText: {
-    color: theme.colors.danger,
+    color: "#EF476F",
   },
   inactiveIncomeText: {
-    color: theme.colors.success,
+    color: "#06D6A0",
   },
   inputGroup: {
     marginBottom: 20,
@@ -326,19 +364,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   label: {
-    fontSize: theme.fontSizes.medium,
-    color: theme.colors.text,
+    fontSize: 16,
     fontWeight: "500",
     marginLeft: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: theme.colors.border,
     borderRadius: 12,
     padding: 12,
-    fontSize: theme.fontSizes.medium,
-    color: theme.colors.text,
-    backgroundColor: theme.colors.cardAlt,
+    fontSize: 16,
   },
   textArea: {
     height: 100,
@@ -349,21 +383,17 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   categoryChip: {
-    backgroundColor: theme.colors.cardAlt,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
     margin: 4,
     borderWidth: 1,
-    borderColor: theme.colors.border,
   },
   selectedCategoryChip: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    borderColor: "transparent",
   },
   categoryChipText: {
-    color: theme.colors.text,
-    fontSize: theme.fontSizes.small,
+    fontSize: 12,
     fontWeight: "500",
   },
   selectedCategoryChipText: {
@@ -374,20 +404,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: theme.colors.border,
     borderRadius: 12,
     padding: 12,
-    backgroundColor: theme.colors.cardAlt,
   },
   dateButtonText: {
-    fontSize: theme.fontSizes.medium,
-    color: theme.colors.text,
+    fontSize: 16,
     textAlign: "center",
   },
   datePickerContainer: {
     marginTop: 10,
     alignItems: "center",
-    backgroundColor: theme.colors.cardAlt,
     borderRadius: 12,
     padding: 10,
   },
@@ -398,17 +424,16 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   expenseSubmitButton: {
-    backgroundColor: theme.colors.danger,
+    backgroundColor: "#EF476F",
   },
   incomeSubmitButton: {
-    backgroundColor: theme.colors.success,
+    backgroundColor: "#06D6A0",
   },
   submitButtonText: {
     color: "white",
-    fontSize: theme.fontSizes.medium,
+    fontSize: 16,
     fontWeight: "bold",
   },
 })
 
 export default AddExpense
-

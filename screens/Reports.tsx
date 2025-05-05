@@ -4,14 +4,15 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, FlatList, 
 import { useState } from "react"
 import { PieChart } from "react-native-chart-kit"
 import { useTransactions } from "../context/TransactionContext"
-import { theme } from "../theme"
+import { useTheme } from "../context/ThemeContext"
 import { useCurrency } from "../hooks/useCurrency"
 import { Calendar, DollarSign, TrendingDown, TrendingUp, ArrowLeft, ArrowRight, Eye, X } from "lucide-react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 const Reports = () => {
   const { transactions } = useTransactions()
-  const { format } = useCurrency()
+  const { format, currency, convert } = useCurrency()
+  const { theme } = useTheme()
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [categoryModalVisible, setCategoryModalVisible] = useState(false)
@@ -38,11 +39,21 @@ const Reports = () => {
     return date.getMonth() === selectedMonth && date.getFullYear() === selectedYear
   })
 
+  // Función para convertir montos según la moneda actual
+  const getConvertedAmount = (amount: number) => {
+    if (currency === "COP") {
+      return amount
+    }
+    // Si la moneda es USD, convertimos de COP a USD
+    return amount / 3800
+  }
+
   const expensesByCategory = filteredTransactions
     .filter((t) => t.type === "expense")
     .reduce(
       (acc, curr) => {
-        acc[curr.category] = (acc[curr.category] || 0) + curr.amount
+        const convertedAmount = getConvertedAmount(curr.amount)
+        acc[curr.category] = (acc[curr.category] || 0) + convertedAmount
         return acc
       },
       {} as Record<string, number>,
@@ -59,7 +70,7 @@ const Reports = () => {
   const totalExpenses = Object.values(expensesByCategory).reduce((a, b) => a + b, 0)
   const totalIncome = filteredTransactions
     .filter((t) => t.type === "income")
-    .reduce((acc, curr) => acc + curr.amount, 0)
+    .reduce((acc, curr) => acc + getConvertedAmount(curr.amount), 0)
   const balance = totalIncome - totalExpenses
 
   const changeMonth = (increment: number) => {
@@ -92,62 +103,96 @@ const Reports = () => {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <ScrollView style={styles.container}>
-        <View style={styles.header}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.primary }]} edges={["top"]}>
+      <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
           <Text style={styles.headerTitle}>Análisis Financiero</Text>
         </View>
 
         <View style={styles.content}>
-          <View style={styles.monthSelectorCard}>
+          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
             <View style={styles.monthSelector}>
-              <TouchableOpacity style={styles.arrowButton} onPress={() => changeMonth(-1)}>
+              <TouchableOpacity
+                style={[styles.arrowButton, { backgroundColor: theme.colors.primaryLight }]}
+                onPress={() => changeMonth(-1)}
+              >
                 <ArrowLeft color={theme.colors.primary} size={24} />
               </TouchableOpacity>
               <View style={styles.monthYearContainer}>
                 <Calendar color={theme.colors.primary} size={20} />
-                <Text style={styles.monthYearText}>{`${months[selectedMonth]} ${selectedYear}`}</Text>
+                <Text style={[styles.monthYearText, { color: theme.colors.text }]}>
+                  {`${months[selectedMonth]} ${selectedYear}`}
+                </Text>
               </View>
-              <TouchableOpacity style={styles.arrowButton} onPress={() => changeMonth(1)}>
+              <TouchableOpacity
+                style={[styles.arrowButton, { backgroundColor: theme.colors.primaryLight }]}
+                onPress={() => changeMonth(1)}
+              >
                 <ArrowRight color={theme.colors.primary} size={24} />
               </TouchableOpacity>
             </View>
           </View>
 
           <View style={styles.summaryContainer}>
-            <View style={[styles.summaryCard, styles.incomeCard]}>
+            <View
+              style={[
+                styles.summaryCard,
+                styles.incomeCard,
+                { backgroundColor: theme.colors.card, borderLeftColor: theme.colors.success },
+              ]}
+            >
               <View style={styles.summaryIconContainer}>
                 <TrendingUp color={theme.colors.success} size={20} />
               </View>
               <View>
-                <Text style={styles.summaryLabel}>Ingresos</Text>
-                <Text style={styles.incomeText}>{format(totalIncome)}</Text>
+                <Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Ingresos</Text>
+                <Text style={[styles.incomeText, { color: theme.colors.success }]}>{format(totalIncome)}</Text>
               </View>
             </View>
 
-            <View style={[styles.summaryCard, styles.expenseCard]}>
+            <View
+              style={[
+                styles.summaryCard,
+                styles.expenseCard,
+                { backgroundColor: theme.colors.card, borderLeftColor: theme.colors.danger },
+              ]}
+            >
               <View style={styles.summaryIconContainer}>
                 <TrendingDown color={theme.colors.danger} size={20} />
               </View>
               <View>
-                <Text style={styles.summaryLabel}>Gastos</Text>
-                <Text style={styles.expenseText}>{format(totalExpenses)}</Text>
+                <Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Gastos</Text>
+                <Text style={[styles.expenseText, { color: theme.colors.danger }]}>{format(totalExpenses)}</Text>
               </View>
             </View>
 
-            <View style={[styles.summaryCard, styles.balanceCard]}>
+            <View
+              style={[
+                styles.summaryCard,
+                styles.balanceCard,
+                { backgroundColor: theme.colors.card, borderLeftColor: theme.colors.primary },
+              ]}
+            >
               <View style={styles.summaryIconContainer}>
                 <DollarSign color={theme.colors.primary} size={20} />
               </View>
               <View>
-                <Text style={styles.summaryLabel}>Balance</Text>
-                <Text style={[styles.balanceText, balance < 0 && styles.negativeBalance]}>{format(balance)}</Text>
+                <Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Balance</Text>
+                <Text
+                  style={[
+                    styles.balanceText,
+                    { color: theme.colors.primary },
+                    balance < 0 && { color: theme.colors.danger },
+                  ]}
+                >
+                  {format(balance)}
+                </Text>
               </View>
             </View>
           </View>
 
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Gastos por Categoría</Text>
+          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>Gastos por Categoría</Text>
             {chartData.length > 0 ? (
               <View>
                 <PieChart
@@ -158,9 +203,9 @@ const Reports = () => {
                     backgroundColor: theme.colors.card,
                     backgroundGradientFrom: theme.colors.card,
                     backgroundGradientTo: theme.colors.card,
-                    decimalPlaces: 0,
+                    decimalPlaces: currency === "USD" ? 2 : 0,
                     color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                    labelColor: (opacity = 1) => theme.colors.text,
                     style: {
                       borderRadius: 16,
                     },
@@ -178,12 +223,14 @@ const Reports = () => {
                   {chartData.map((item, index) => (
                     <TouchableOpacity
                       key={index}
-                      style={styles.legendItem}
+                      style={[styles.legendItem, { backgroundColor: theme.colors.cardAlt }]}
                       onPress={() => viewTransactionsByCategory(item.name)}
                     >
                       <View style={[styles.legendColor, { backgroundColor: item.color }]} />
-                      <Text style={styles.legendText}>{item.name}</Text>
-                      <Text style={styles.legendValue}>{format(item.population)}</Text>
+                      <Text style={[styles.legendText, { color: theme.colors.text }]}>{item.name}</Text>
+                      <Text style={[styles.legendValue, { color: theme.colors.primary }]}>
+                        {format(item.population)}
+                      </Text>
                       <Eye size={16} color={theme.colors.primary} />
                     </TouchableOpacity>
                   ))}
@@ -191,13 +238,15 @@ const Reports = () => {
               </View>
             ) : (
               <View style={styles.noDataContainer}>
-                <Text style={styles.noDataText}>No hay datos de gastos para este mes</Text>
+                <Text style={[styles.noDataText, { color: theme.colors.textSecondary }]}>
+                  No hay datos de gastos para este mes
+                </Text>
               </View>
             )}
           </View>
 
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Principales Gastos</Text>
+          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>Principales Gastos</Text>
             {Object.entries(expensesByCategory).length > 0 ? (
               Object.entries(expensesByCategory)
                 .sort(([, a], [, b]) => b - a)
@@ -205,7 +254,7 @@ const Reports = () => {
                 .map(([category, amount], index) => (
                   <TouchableOpacity
                     key={category}
-                    style={styles.expenseRow}
+                    style={[styles.expenseRow, { borderBottomColor: theme.colors.border }]}
                     onPress={() => viewTransactionsByCategory(category)}
                   >
                     <View style={styles.categoryIndicator}>
@@ -215,18 +264,20 @@ const Reports = () => {
                           { backgroundColor: theme.colors.chartColors[index % theme.colors.chartColors.length] },
                         ]}
                       />
-                      <Text style={styles.categoryText}>{category}</Text>
+                      <Text style={[styles.categoryText, { color: theme.colors.text }]}>{category}</Text>
                     </View>
                     <View style={styles.amountContainer}>
-                      <Text style={styles.amountText}>{format(amount)}</Text>
-                      <Text style={styles.percentageText}>
+                      <Text style={[styles.amountText, { color: theme.colors.primary }]}>{format(amount)}</Text>
+                      <Text style={[styles.percentageText, { color: theme.colors.textSecondary }]}>
                         {totalExpenses > 0 ? `${Math.round((amount / totalExpenses) * 100)}%` : "0%"}
                       </Text>
                     </View>
                   </TouchableOpacity>
                 ))
             ) : (
-              <Text style={styles.noDataText}>No hay gastos registrados para este mes</Text>
+              <Text style={[styles.noDataText, { color: theme.colors.textSecondary }]}>
+                No hay gastos registrados para este mes
+              </Text>
             )}
           </View>
         </View>
@@ -238,49 +289,60 @@ const Reports = () => {
           onRequestClose={() => setCategoryModalVisible(false)}
         >
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Gastos en {selectedCategory}</Text>
+            <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+              <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
+                <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Gastos en {selectedCategory}</Text>
                 <TouchableOpacity onPress={() => setCategoryModalVisible(false)}>
                   <X color={theme.colors.text} size={24} />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.modalBody}>
-                <View style={styles.categoryTotalContainer}>
-                  <Text style={styles.categoryTotalLabel}>Total gastado:</Text>
-                  <Text style={styles.categoryTotalAmount}>
-                    {format(categoryTransactions.reduce((sum, t) => sum + t.amount, 0))}
+                <View style={[styles.categoryTotalContainer, { backgroundColor: theme.colors.dangerLight }]}>
+                  <Text style={[styles.categoryTotalLabel, { color: theme.colors.text }]}>Total gastado:</Text>
+                  <Text style={[styles.categoryTotalAmount, { color: theme.colors.danger }]}>
+                    {format(categoryTransactions.reduce((sum, t) => sum + getConvertedAmount(t.amount), 0))}
                   </Text>
                 </View>
 
-                <Text style={styles.transactionsListTitle}>Transacciones:</Text>
+                <Text style={[styles.transactionsListTitle, { color: theme.colors.text }]}>Transacciones:</Text>
 
                 <FlatList
                   data={categoryTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())}
                   keyExtractor={(item) => item.id}
                   style={styles.transactionsList}
                   renderItem={({ item }) => (
-                    <View style={styles.transactionItem}>
+                    <View style={[styles.transactionItem, { backgroundColor: theme.colors.cardAlt }]}>
                       <View style={styles.transactionHeader}>
                         <View style={styles.transactionDateContainer}>
                           <Calendar size={16} color={theme.colors.primary} />
-                          <Text style={styles.transactionDate}>{new Date(item.date).toLocaleDateString()}</Text>
+                          <Text style={[styles.transactionDate, { color: theme.colors.text }]}>
+                            {new Date(item.date).toLocaleDateString()}
+                          </Text>
                         </View>
-                        <Text style={styles.transactionAmount}>{format(item.amount)}</Text>
+                        <Text style={[styles.transactionAmount, { color: theme.colors.danger }]}>
+                          {format(getConvertedAmount(item.amount))}
+                        </Text>
                       </View>
 
                       {item.description && (
-                        <View style={styles.transactionDescription}>
-                          <Text style={styles.descriptionText}>{item.description}</Text>
+                        <View style={[styles.transactionDescription, { backgroundColor: "white" }]}>
+                          <Text style={[styles.descriptionText, { color: theme.colors.text }]}>{item.description}</Text>
                         </View>
                       )}
                     </View>
                   )}
-                  ListEmptyComponent={<Text style={styles.noDataText}>No hay transacciones para mostrar</Text>}
+                  ListEmptyComponent={
+                    <Text style={[styles.noDataText, { color: theme.colors.textSecondary }]}>
+                      No hay transacciones para mostrar
+                    </Text>
+                  }
                 />
 
-                <TouchableOpacity style={styles.closeButton} onPress={() => setCategoryModalVisible(false)}>
+                <TouchableOpacity
+                  style={[styles.closeButton, { backgroundColor: theme.colors.primary }]}
+                  onPress={() => setCategoryModalVisible(false)}
+                >
                   <Text style={styles.closeButtonText}>Cerrar</Text>
                 </TouchableOpacity>
               </View>
@@ -295,16 +357,13 @@ const Reports = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   header: {
-    backgroundColor: theme.colors.primary,
     paddingHorizontal: 20,
-    paddingTop: 30,
+    paddingTop: 50, // Aumentado para evitar la isla dinámica
     paddingBottom: 30,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
@@ -312,15 +371,14 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: "white",
-    fontSize: theme.fontSizes.large,
+    fontSize: 20,
     fontWeight: "bold",
   },
   content: {
     padding: 16,
-    marginTop: -30,
+    marginTop: -20,
   },
   card: {
-    backgroundColor: theme.colors.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -329,19 +387,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
-  },
-  monthSelectorCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.primaryLight,
   },
   monthSelector: {
     flexDirection: "row",
@@ -353,32 +398,16 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.primaryLight,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   monthYearContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
   },
   monthYearText: {
-    fontSize: theme.fontSizes.medium,
+    fontSize: 20,
     fontWeight: "bold",
-    color: theme.colors.text,
     marginLeft: 8,
   },
   summaryContainer: {
@@ -387,7 +416,6 @@ const styles = StyleSheet.create({
   summaryCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -399,15 +427,12 @@ const styles = StyleSheet.create({
   },
   incomeCard: {
     borderLeftWidth: 4,
-    borderLeftColor: theme.colors.success,
   },
   expenseCard: {
     borderLeftWidth: 4,
-    borderLeftColor: theme.colors.danger,
   },
   balanceCard: {
     borderLeftWidth: 4,
-    borderLeftColor: theme.colors.primary,
   },
   summaryIconContainer: {
     width: 40,
@@ -424,32 +449,27 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   summaryLabel: {
-    fontSize: theme.fontSizes.small,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
     marginBottom: 4,
   },
   incomeText: {
-    fontSize: theme.fontSizes.medium,
+    fontSize: 16,
     fontWeight: "bold",
-    color: theme.colors.success,
   },
   expenseText: {
-    fontSize: theme.fontSizes.medium,
+    fontSize: 16,
     fontWeight: "bold",
-    color: theme.colors.danger,
   },
   balanceText: {
-    fontSize: theme.fontSizes.medium,
+    fontSize: 16,
     fontWeight: "bold",
-    color: theme.colors.primary,
   },
   negativeBalance: {
-    color: theme.colors.danger,
+    color: "#EF476F",
   },
   cardTitle: {
-    fontSize: theme.fontSizes.large,
+    fontSize: 20,
     fontWeight: "bold",
-    color: theme.colors.text,
     marginBottom: 16,
   },
   chart: {
@@ -464,7 +484,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     padding: 8,
     borderRadius: 8,
-    backgroundColor: theme.colors.cardAlt,
   },
   legendColor: {
     width: 16,
@@ -474,13 +493,11 @@ const styles = StyleSheet.create({
   },
   legendText: {
     flex: 1,
-    fontSize: theme.fontSizes.medium,
-    color: theme.colors.text,
+    fontSize: 16,
   },
   legendValue: {
-    fontSize: theme.fontSizes.medium,
+    fontSize: 16,
     fontWeight: "bold",
-    color: theme.colors.primary,
     marginRight: 8,
   },
   expenseRow: {
@@ -490,7 +507,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
   },
   categoryIndicator: {
     flexDirection: "row",
@@ -503,21 +519,18 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   categoryText: {
-    fontSize: theme.fontSizes.medium,
-    color: theme.colors.text,
+    fontSize: 16,
   },
   amountContainer: {
     alignItems: "flex-end",
   },
   amountText: {
-    fontSize: theme.fontSizes.medium,
+    fontSize: 16,
     fontWeight: "bold",
-    color: theme.colors.primary,
     textAlign: "right",
   },
   percentageText: {
-    fontSize: theme.fontSizes.small,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
     textAlign: "right",
   },
   noDataContainer: {
@@ -526,8 +539,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   noDataText: {
-    fontSize: theme.fontSizes.medium,
-    color: theme.colors.textSecondary,
+    fontSize: 16,
     textAlign: "center",
     marginVertical: 20,
   },
@@ -539,7 +551,6 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: theme.colors.card,
     borderRadius: 16,
     width: "100%",
     maxWidth: 400,
@@ -556,12 +567,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
   },
   modalTitle: {
-    fontSize: theme.fontSizes.large,
+    fontSize: 20,
     fontWeight: "bold",
-    color: theme.colors.text,
   },
   modalBody: {
     padding: 16,
@@ -571,32 +580,27 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: theme.colors.dangerLight,
     padding: 12,
     borderRadius: 12,
     marginBottom: 16,
   },
   categoryTotalLabel: {
-    fontSize: theme.fontSizes.medium,
-    color: theme.colors.text,
+    fontSize: 16,
     fontWeight: "500",
   },
   categoryTotalAmount: {
-    fontSize: theme.fontSizes.large,
-    color: theme.colors.danger,
+    fontSize: 20,
     fontWeight: "bold",
   },
   transactionsListTitle: {
-    fontSize: theme.fontSizes.medium,
+    fontSize: 16,
     fontWeight: "bold",
-    color: theme.colors.text,
     marginBottom: 8,
   },
   transactionsList: {
     maxHeight: 300,
   },
   transactionItem: {
-    backgroundColor: theme.colors.cardAlt,
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
@@ -612,26 +616,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   transactionDate: {
-    fontSize: theme.fontSizes.small,
-    color: theme.colors.text,
+    fontSize: 12,
     marginLeft: 6,
   },
   transactionAmount: {
-    fontSize: theme.fontSizes.medium,
+    fontSize: 16,
     fontWeight: "bold",
-    color: theme.colors.danger,
   },
   transactionDescription: {
-    backgroundColor: "white",
     borderRadius: 8,
     padding: 8,
   },
   descriptionText: {
-    fontSize: theme.fontSizes.small,
-    color: theme.colors.text,
+    fontSize: 12,
   },
   closeButton: {
-    backgroundColor: theme.colors.primary,
     borderRadius: 12,
     padding: 14,
     alignItems: "center",
@@ -639,10 +638,9 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     color: "white",
-    fontSize: theme.fontSizes.medium,
+    fontSize: 16,
     fontWeight: "bold",
   },
 })
 
 export default Reports
-
